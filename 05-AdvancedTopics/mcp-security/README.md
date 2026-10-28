@@ -62,10 +62,11 @@ Proxy Operations:
   oauth_security: "MUST implement OAuth 2.1 with PKCE"
   redirect_validation: "MUST validate redirect URIs strictly"
   
-Session Management:
-  session_ids: "MUST use secure, non-deterministic generation" 
-  user_binding: "SHOULD bind to user-specific information"
-  transport_security: "MUST use HTTPS for all communications"
+Application State (if used; not MCP protocol sessions):
+  protocol_sessions: "Not present in MCP 2026-07-28; do not use Mcp-Session-Id"
+  application_handles: "Scope any application-issued handle to its authorized caller and operation"
+  request_authorization: "Revalidate credentials and permissions independently on every request"
+  transport_security: "Use HTTPS for remote HTTP deployments"
 ```
 
 ## Advanced Authentication and Authorization
@@ -1281,9 +1282,16 @@ class TokenPassthroughPrevention:
         return await self.sign_downstream_token(token_payload)
 ```
 
-### **3. Session Hijacking Prevention**
+### **3. Application-Level State Handle Security**
 
-**Advanced Session Security:**
+MCP `2026-07-28` has no protocol-level `initialize` handshake or
+`Mcp-Session-Id` header. Applications may issue explicit state handles as
+ordinary tool arguments, but those handles are not authentication or a
+substitute for authorizing every request and operation. The following
+illustrative pattern concerns **application-owned state only**. It is
+incomplete pseudocode, not an MCP protocol requirement or a runnable server.
+
+**Optional application-state controls:**
 
 ```python
 import secrets
@@ -1291,7 +1299,7 @@ import hashlib
 from typing import Optional
 
 class AdvancedSessionSecurity:
-    """Advanced session security controls per MCP specification requirements"""
+    """Illustrative application-owned state controls; not MCP session requirements."""
     
     def __init__(self, redis_client=None, encryption_key: bytes = None):
         self.redis_client = redis_client
@@ -1301,13 +1309,13 @@ class AdvancedSessionSecurity:
     
     async def generate_secure_session_id(self, user_id: str, additional_context: Dict = None) -> str:
         """
-        MANDATORY: Generate secure, non-deterministic session IDs
-        per MCP specification requirement
+        Example: generate an unpredictable application-owned state handle.
+        MCP 2026-07-28 does not require or define session IDs.
         """
         # Generate cryptographically secure random component
         random_component = secrets.token_urlsafe(32)  # 256 bits of entropy
         
-        # Create user-specific binding as recommended by MCP spec
+        # Application-specific binding; not prescribed by MCP
         user_binding = hashlib.sha256(f"{user_id}:{random_component}".encode()).hexdigest()
         
         # Add timestamp and additional context
@@ -1333,7 +1341,7 @@ class AdvancedSessionSecurity:
         request_context: Dict
     ) -> bool:
         """
-        Validate session ID is bound to specific user per MCP requirements
+        Validate an optional application handle against its intended caller
         """
         try:
             # Decrypt session ID
@@ -1384,7 +1392,7 @@ class AdvancedSessionSecurity:
     ) -> Dict:
         """Implement comprehensive session security controls"""
         
-        # 1. Validate session binding (MANDATORY)
+        # 1. Validate this application's own handle, if the feature is used
         if not await self.validate_session_binding(session_id, user_id, request.get('context', {})):
             raise SecurityException("Session validation failed")
         
@@ -1749,10 +1757,10 @@ AI Security Controls:
   Tool poisoning detection
   Output content validation
   
-Session Security:
-  Cryptographically secure session IDs
-  User-specific session binding
-  Session hijacking detection
+Application State (optional; not MCP protocol sessions):
+  No protocol-level session IDs in MCP 2026-07-28
+  Explicit application-owned handles scoped to authorized callers
+  Fresh per-request and per-operation authorization
   HTTPS transport enforcement
   
 OAuth & Proxy Security:
