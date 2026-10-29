@@ -57,7 +57,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return response
 
 
-starlette_app.add_middleware(CustomHeaderMiddleware)
+starlette_app.add_middleware(AuthMiddleware)
 ```
 
 Here we have: 
@@ -102,21 +102,20 @@ function isValid(secret) {
 }
 
 app.use((req, res, next) => {
-    // 1. Authorization header present?  
-    if(!req.headers["Authorization"]) {
-        res.status(401).send('Unauthorized');
-    }
-    
-    let token = req.headers["Authorization"];
-
-    // 2. Check validity.
-    if(!isValid(token)) {
-        res.status(403).send('Forbidden');
+    // Express matches header names case-insensitively.
+    const token = req.get("Authorization");
+    if (!token) {
+        res.status(401).send("Unauthorized");
+        return;
     }
 
-   
+    if (!isValid(token)) {
+        res.status(403).send("Forbidden");
+        return;
+    }
+
     console.log('Middleware executed');
-    // 3. Passes request to the next step in the request pipeline.
+    // Only an authorized request reaches the next handler.
     next();
 });
 ```
