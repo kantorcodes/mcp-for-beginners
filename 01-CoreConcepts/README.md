@@ -287,11 +287,11 @@ Logging messages are sent to clients to provide transparency into server operati
 
 The Model Context Protocol (MCP) defines a structured flow of information between hosts, clients, servers, and models. Understanding this flow helps clarify how user requests are processed and how external tools and data are integrated into model responses.
 
-- **Host Initiates Connection**  
-  The host application (such as an IDE or chat interface) establishes a connection to an MCP server, typically via STDIO, WebSocket, or another supported transport.
+- **Host Initiates Communication**  
+  The host application (such as an IDE or chat interface) communicates with an MCP server through stdio for local processes or Streamable HTTP for remote requests. MCP `2026-07-28` does not require a persistent protocol session.
 
-- **Capability Negotiation**  
-  The client (embedded in the host) and the server exchange information about their supported features, tools, resources, and protocol versions. This ensures both sides understand what capabilities are available for the session.
+- **Capability Discovery**  
+  The client can call `server/discover` to learn the server's supported versions and capabilities. In MCP `2026-07-28`, each request declares its protocol version, client information, and capabilities; discovery is optional.
 
 - **User Request**  
   The user interacts with the host (e.g., enters a prompt or command). The host collects this input and passes it to the client for processing.
@@ -322,7 +322,7 @@ The **Data Layer** implements the core MCP protocol using **JSON-RPC 2.0** as it
 #### Core Components:
 
 - **JSON-RPC 2.0 Protocol**: All communication uses standardized JSON-RPC 2.0 message format for method calls, responses, and notifications
-- **Lifecycle Management**: Handles connection initialization, capability negotiation, and session termination between clients and servers
+- **Versioning and Discovery**: Uses per-request protocol metadata and optional `server/discover` on MCP `2026-07-28`; initialization handshakes and session termination belong to earlier protocol revisions
 - **Server Primitives**: Enables servers to provide core functionality through tools, resources, and prompts
 - **Client Primitives**: Enables servers to request sampling from LLMs, elicit user input, and send log messages
 - **Real-time Notifications**: Supports asynchronous notifications for dynamic updates without polling
@@ -330,8 +330,8 @@ The **Data Layer** implements the core MCP protocol using **JSON-RPC 2.0** as it
 #### Key Features:
 
 - **Protocol Version Negotiation**: Uses date-based versioning (YYYY-MM-DD) to ensure compatibility
-- **Capability Discovery**: Clients and servers exchange supported feature information during initialization
-- **Stateful Sessions**: Maintains connection state across multiple interactions for context continuity
+- **Capability Discovery**: Clients can use `server/discover` to obtain supported versions and capabilities without an initialization handshake
+- **Stateless Requests**: Modern `2026-07-28` requests carry their own protocol metadata, without protocol-level sessions; applications can retain state through explicit handles passed as tool arguments
 
 ### Transport Layer
 
